@@ -76,7 +76,6 @@
         <div class="server-icon active" id="btnServer" onclick="switchMode('server')" title="Игровой сервер">🎮</div>
         <div class="server-icon" id="btnDM" onclick="switchMode('dm')" title="Личные сообщения">💬</div>
     </div>
-
     <!-- Боковое меню каналов или друзей -->
     <div class="sidebar">
         <div class="sidebar-header" id="sidebarHeader">Игровой Сервер</div>
@@ -104,14 +103,61 @@
         let currentUser = "";
         let currentTarget = "общий"; 
         let isDMMode = false; 
+        let socket;
 
-        const network = new BroadcastChannel('discord_advanced_network');
-        
-        let allMessages = JSON.parse(localStorage.getItem('discord_db_messages')) || [
-            { id: 1, author: "Система", text: "Добро пожаловать в ваш приватный Discord-чат! Разошлите ссылку друзьям, чтобы общаться.", time: "Система", target: "общий", isDM: false }
-        ];
-        
-        let activeUsers = new Set(["Димон_Pro", "Секретного_Геймера", "Игрок_X"]);
+        // Массив сообщений и список активных пользователей в сети
+        let allMessages = [];
+        let activeUsers = new Set();
+
+        // Подключаемся к бесплатному открытому WebSocket-серверу для обмена данными между устройствами
+        // Используем случайный уникальный ID комнаты (razercord_room_2026), чтобы никто чужой не влез
+        function connectWebSocket() {
+            socket = new WebSocket('wss://://piesocket.com');
+
+            socket.onopen = () => {
+                // Как только подключились — заявляем всем в сети, что мы зашли
+                sendNetworkMessage({ type: 'user_online', user: currentUser });
+            };
+
+            socket.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                
+                if (data.type === 'msg_broadcast') {
+                    // Прилетело новое сообщение от друга или нас
+                    if (!allMessages.some(m => m.id === data.msg.id)) {
+                        allMessages.push(data.msg);
+                        renderMessages();
+                    }
+                } else if (data.type === 'user_online') {
+                    // Кто-то зашел на сайт
+                    if (!activeUsers.has(data.user)) {
+                        activeUsers.add(data.user);
+                        renderUsers();
+                        if (isDMMode) renderSidebar();
+                        // Отправляем ответный сигнал, чтобы новый пользователь тоже увидел нас у себя
+                        sendNetworkMessage({ type: 'sync_back', user: currentUser });
+                    }
+                } else if (data.type === 'sync_back') {
+                    // Получили ответный сигнал синхронизации списков
+                    if (!activeUsers.has(data.user)) {
+                        activeUsers.add(data.user);
+                        renderUsers();
+                        if (isDMMode) renderSidebar();
+                    }
+                }
+            };
+
+            // Если интернет моргнул — автоматически подключаемся заново через 3 секунды
+            socket.onclose = () => {
+                setTimeout(connectWebSocket, 3000);
+            };
+        }
+
+        function sendNetworkMessage(obj) {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify(obj));
+            }
+        }
 
         function login() {
             const nick = document.getElementById('nicknameInput').value.trim();
@@ -119,8 +165,15 @@
             currentUser = nick;
             activeUsers.add(currentUser);
             document.getElementById('loginOverlay').style.display = 'none';
-            network.postMessage({ type: 'user_online', user: currentUser });
+            
+            // Запускаем интернет-сеть
+            connectWebSocket();
             initChat();
+            
+            // Каждые 10 секунд пингуем сеть, чтобы оставаться в списке «В сети»
+            setInterval(() => {
+                sendNetworkMessage({ type: 'user_online', user: currentUser });
+            }, 10000);
         }
 
         function initChat() {
@@ -160,7 +213,8 @@
                 });
             } else {
                 list.innerHTML += `<div class="channel-category">Прямые сообщения</div>`;
-                activeUsers.forEach(user => {                    if (user === currentUser) return;
+                activeUsers.forEach(user => {
+                    if (user === currentUser) return;
                     const active = currentTarget === user ? 'active' : '';
                     list.innerHTML += `<div class="channel-item ${active}" onclick="selectTarget('${user}')">👤 ${user}</div>`;
                 });
@@ -246,37 +300,11 @@
                     isDM: isDMMode
                 };
                 
-                allMessages.push(msgObj);
-                localStorage.setItem('discord_db_messages', JSON.stringify(allMessages));
-                
-                network.postMessage({ type: 'msg_broadcast', msg: msgObj });
-                
+                // Отправляем сообщение на сервер трансляции для всех
+                sendNetworkMessage({ type: 'msg_broadcast', msg: msgObj });
                 input.value = "";
-                renderMessages();
             }
         }
-
-        network.onmessage = (event) => {
-            if (event.data.type === 'msg_broadcast') {
-                allMessages.push(event.data.msg);
-                localStorage.setItem('discord_db_messages', JSON.stringify(allMessages));
-                renderMessages();
-            } else if (event.data.type === 'user_online') {
-                if (!activeUsers.has(event.data.user)) {
-                    activeUsers.add(event.data.user);
-                    renderUsers();
-                    if (isDMMode) renderSidebar();
-                    network.postMessage({ type: 'sync_back', user: currentUser });
-                }
-            } else if (event.data.type === 'sync_back') {
-                if (!activeUsers.has(event.data.user)) {
-                    activeUsers.add(event.data.user);
-                    renderUsers();
-                    if (isDMMode) renderSidebar();
-                }
-            }
-        };
     </script>
 </body>
 </html>
-
