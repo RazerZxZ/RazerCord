@@ -2,280 +2,106 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RazerCord Database</title>
-    <!-- Подключаем официальную библиотеку Supabase -->
-    <script src="https://jsdelivr.net"></script>
+    <title>RazerCord</title>
+    <script src="https://cloudflare.com"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { display: flex; height: 100vh; background-color: #313338; color: #dbdee1; overflow: hidden; }
-        
-        /* Панель серверов */
-        .servers-bar { width: 72px; background-color: #1e1f22; display: flex; flex-direction: column; align-items: center; padding-top: 12px; gap: 8px; }
-        .server-icon { width: 48px; height: 48px; background-color: #313338; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; font-size: 24px; }
-        .server-icon:hover, .server-icon.active { border-radius: 30%; background-color: #5865f2; }
-
-        /* Левая панель комнат */
-        .sidebar { width: 240px; background-color: #2b2d31; display: flex; flex-direction: column; }
-        .sidebar-header { height: 48px; border-bottom: 1px solid #1f2023; display: flex; align-items: center; padding: 0 16px; font-weight: bold; color: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
-        .channels-list { flex: 1; padding: 8px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
-        .channel-item { padding: 8px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 8px; color: #949ba4; font-size: 15px; }
-        .channel-item:hover, .channel-item.active { background-color: #35373c; color: #dbdee1; }
-        .channel-item.active { background-color: #404249; color: #fff; }
-        .channel-category { font-size: 12px; font-weight: bold; color: #949ba4; padding: 16px 8px 4px 8px; text-transform: uppercase; letter-spacing: 0.5px; }
-
-        /* Окно чата */
-        .chat-area { flex: 1; display: flex; flex-direction: column; background-color: #313338; }
-        .chat-header { height: 48px; border-bottom: 1px solid #1f2023; display: flex; align-items: center; padding: 0 16px; font-weight: bold; color: #fff; gap: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
-        .messages-container { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
-        
-        /* Сообщения */
-        .message { display: flex; gap: 16px; animation: fadeIn 0.15s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
-        .avatar { width: 40px; height: 40px; background-color: #5865f2; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #fff; font-size: 16px; text-transform: uppercase; user-select: none; }
-        .msg-content { display: flex; flex-direction: column; gap: 4px; width: 100%; }
-        .msg-author { font-weight: 600; color: #f2f3f5; font-size: 14px; display: flex; align-items: center; gap: 8px; }
-        .msg-time { font-size: 12px; color: #949ba4; font-weight: normal; }
-        .msg-text { font-size: 15px; color: #dbdee1; word-break: break-word; line-height: 1.4; }
-
-        /* Поле ввода */
-        .input-container { padding: 0 16px 24px 16px; }
-        .input-wrapper { background-color: #383a40; border-radius: 8px; padding: 11px 16px; display: flex; align-items: center; }
-        .chat-input { flex: 1; background: none; border: none; color: #dbdee1; outline: none; font-size: 15px; width: 100%; }
-        .chat-input::placeholder { color: #80848e; }
-
-        /* Правая панель мемберов */
-        .members-bar { width: 240px; background-color: #2b2d31; padding: 16px 8px; display: flex; flex-direction: column; gap: 4px; }
-        .member-item { padding: 6px 8px; border-radius: 4px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: 0.1s; }
-        .member-item:hover { background-color: #35373c; }
-        .status-dot { width: 10px; height: 10px; background-color: #23a55a; border-radius: 50%; margin-left: auto; border: 2px solid #2b2d31; }
-
-        /* Вход */
-        .login-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #1e1f22; display: flex; align-items: center; justify-content: center; z-index: 100; }
-        .login-box { background-color: #313338; padding: 32px; border-radius: 8px; width: 400px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); text-align: center; }
-        .login-box h2 { color: #fff; margin-bottom: 8px; font-size: 24px; }
-        .login-box p { color: #b5bac1; font-size: 14px; margin-bottom: 24px; }
-        .login-input { width: 100%; padding: 12px; background-color: #1e1f22; border: 1px solid #111; border-radius: 4px; color: #fff; outline: none; margin-bottom: 20px; font-size: 16px; }
-        .login-btn { width: 100%; padding: 13px; background-color: #5865f2; border: none; border-radius: 4px; color: #fff; font-size: 16px; font-weight: bold; cursor: pointer; }
+        * { margin:0; padding:0; box-sizing:border-box; font-family:sans-serif; }
+        body { display:flex; height:100vh; background:#313338; color:#dbdee1; overflow:hidden; }
+        .sidebar { width:240px; background:#2b2d31; display:flex; flex-direction:column; padding:10px; gap:5px; }
+        .chat-area { flex:1; display:flex; flex-direction:column; background:#313338; }
+        .messages-container { flex:1; padding:20px; overflow-y:auto; display:flex; flex-direction:column; gap:10px; }
+        .input-container { padding:20px; }
+        .chat-input { width:100%; padding:15px; background:#383a40; border:none; border-radius:8px; color:#fff; outline:none; }
+        .members-bar { width:200px; background:#2b2d31; padding:10px; }
+        .login-overlay { position:fixed; top:0; left:0; width:100vw; height:100vh; background:#1e1f22; display:flex; align-items:center; justify-content:center; z-index:100; }
+        .login-box { background:#313338; padding:30px; border-radius:8px; text-align:center; }
+        .login-input { width:100%; padding:10px; background:#1e1f22; border:1px solid #111; border-radius:4px; color:#fff; margin-bottom:15px; }
+        .login-btn { width:100%; padding:10px; background:#5865f2; border:none; border-radius:4px; color:#fff; font-weight:bold; cursor:pointer; }
     </style>
 </head>
 <body>
-
     <div class="login-overlay" id="loginOverlay">
         <div class="login-box">
-            <h2>С возвращением!</h2>
-            <p>Мы так рады, что вы зашли!</p>
-            <input type="text" class="login-input" id="nicknameInput" placeholder="Введите ваш никнейм" maxlength="15">
+            <h2 style="color:#fff; margin-bottom:15px;">С возвращением!</h2>
+            <input type="text" class="login-input" id="nicknameInput" placeholder="Введите ваш никнейм">
             <button class="login-btn" onclick="login()">Войти в чат</button>
         </div>
     </div>
-
-    <div class="servers-bar">
-        <div class="server-icon active" id="btnServer" onclick="switchMode('server')">🎮</div>
-        <div class="server-icon" id="btnDM" onclick="switchMode('dm')">💬</div>
-    </div>
     <div class="sidebar">
-        <div class="sidebar-header" id="sidebarHeader">Игровой Сервер</div>
-        <div class="channels-list" id="channelsList"></div>
+        <h3 style="color:#fff; margin-bottom:10px;">🎮 RazerCord</h3>
+        <div style="background:#404249; padding:8px; border-radius:4px; color:#fff;"># общий</div>
     </div>
-
     <div class="chat-area">
-        <div class="chat-header" id="chatHeader"># общий</div>
+        <div style="padding:15px; border-bottom:1px solid #1f2023; font-weight:bold; color:#fff;"># общий</div>
         <div class="messages-container" id="messagesContainer"></div>
         <div class="input-container">
-            <div class="input-wrapper">
-                <input type="text" class="chat-input" id="chatInput" placeholder="Написать..." onkeypress="handleKeyPress(event)">
-            </div>
+            <input type="text" class="chat-input" id="chatInput" placeholder="Написать в #общий..." onkeypress="handleKeyPress(event)">
         </div>
     </div>
-
     <div class="members-bar">
-        <div class="channel-category">В сети — <span id="onlineCount">0</span></div>
+        <h4 style="font-size:12px; color:#949ba4; margin-bottom:10px;">В СЕТИ</h4>
         <div id="usersList"></div>
     </div>
-
     <script>
-        const SUPABASE_URL = "https://supabase.co";
+        const SUPABASE_URL = "https://pzphlmbrhospfjinjixo.supabase.co";
         const SUPABASE_KEY = "sb_publishable_XjIh1zl_Q4wC0iDCUwNWug_L9N6g57o";
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
+        let supabase = null;
         let currentUser = "";
-        let currentTarget = "общий"; 
-        let isDMMode = false; 
-
         let allMessages = [];
         let activeUsers = new Set();
 
-        // Загрузка истории сообщений из базы данных Supabase
         async function fetchMessages() {
+            if (!supabase) return;
             try {
-                const { data, error } = await supabase
-                    .from('messages')
-                    .select('*')
-                    .order('created_at', { ascending: true });
-
+                const { data, error } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
                 if (error) throw error;
-
-                allMessages = data.map(m => ({
-                    id: m.id,
-                    author: m.author,
-                    text: m.text,
-                    target: m.target,
-                    isDM: m.is_dm,
-                    time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                }));
-
-                // Собираем всех уникальных авторов сообщений, чтобы наполнить список друзей
-                allMessages.forEach(m => {
-                    if (m.author && m.author !== "Система") {
-                        activeUsers.add(m.author);
-                    }
-                });
-
+                allMessages = data;
+                activeUsers.clear();
+                allMessages.forEach(m => { if(m.author) activeUsers.add(m.author); });
+                if(currentUser) activeUsers.add(currentUser);
                 renderUsers();
-                if (isDMMode) renderSidebar();
                 renderMessages();
-            } catch (err) {
-                console.error("Ошибка загрузки сообщений:", err);
-            }
+            } catch (err) { console.error(err); }
         }
 
-        // Отправка нового сообщения в базу данных Supabase
         async function sendMessageToDB(text) {
+            if (!supabase) return;
             try {
-                const { error } = await supabase
-                    .from('messages')
-                    .insert([
-                        { author: currentUser, text: text, target: currentTarget, is_dm: isDMMode }
-                    ]);
-
+                const { error } = await supabase.from('messages').insert([{ author: currentUser, text: text, target: 'общий', is_dm: false }]);
                 if (error) throw error;
-                fetchMessages(); // Обновляем чат сразу после отправки
-            } catch (err) {
-                console.error("Ошибка отправки:", err);
-            }
+                fetchMessages();
+            } catch (err) { console.error(err); }
         }
 
         function login() {
             const nick = document.getElementById('nicknameInput').value.trim();
-            if (!nick) return alert("Пожалуйста, введите никнейм!");
+            if (!nick) return alert("Введите ник!");
             currentUser = nick;
-            activeUsers.add(currentUser);
             document.getElementById('loginOverlay').style.display = 'none';
-            
-            initChat();
-            
-            // Каждые 3 секунды автоматически проверяем базу данных на наличие новых сообщений
-            setInterval(fetchMessages, 3000);
-        }
-
-        function initChat() {
-            renderSidebar();
-            renderUsers();
-            fetchMessages();
-        }
-
-        function switchMode(mode) {
-            isDMMode = (mode === 'dm');
-            document.getElementById('btnServer').classList.toggle('active', !isDMMode);
-            document.getElementById('btnDM').classList.toggle('active', isDMMode);
-            
-            if (isDMMode) {
-                document.getElementById('sidebarHeader').innerText = "Личные сообщения";
-                const firstFriend = Array.from(activeUsers).find(u => u !== currentUser);
-                currentTarget = firstFriend || "Нет друзей";
+            if (window.supabase) {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                fetchMessages();
+                setInterval(fetchMessages, 3000);
             } else {
-                document.getElementById('sidebarHeader').innerText = "Игровой Сервер";
-                currentTarget = "общий";
+                alert("Ошибка загрузки базы данных. Попробуйте обновить страницу.");
             }
-            
-            renderSidebar();
-            renderMessages();
-        }
-
-        function renderSidebar() {
-            const list = document.getElementById('channelsList');
-            if (!list) return;
-            list.innerHTML = "";
-            
-            if (!isDMMode) {
-                list.innerHTML += `<div class="channel-category">Текстовые каналы</div>`;
-                const serverChannels = ["общий", "игры", "мемы"];
-                serverChannels.forEach(ch => {
-                    const active = currentTarget === ch ? 'active' : '';
-                    list.innerHTML += `<div class="channel-item ${active}" onclick="selectTarget('${ch}')"># ${ch}</div>`;
-                });
-            } else {
-                list.innerHTML += `<div class="channel-category">Прямые сообщения</div>`;
-                activeUsers.forEach(user => {
-                    if (user === currentUser) return;
-                    const active = currentTarget === user ? 'active' : '';
-                    list.innerHTML += `<div class="channel-item ${active}" onclick="selectTarget('${user}')">👤 ${user}</div>`;
-                });
-            }
-        }
-
-        function selectTarget(target) {
-            currentTarget = target;
-            document.getElementById('chatHeader').innerText = isDMMode ? `@ ${target}` : `# ${target}`;
-            renderSidebar();
-            renderMessages();
         }
 
         function renderUsers() {
             const container = document.getElementById('usersList');
-            const countSpan = document.getElementById('onlineCount');
-            if (!container || !countSpan) return;
-            
+            if (!container) return;
             container.innerHTML = "";
-            countSpan.innerText = activeUsers.size;
-            
             activeUsers.forEach(user => {
-                const color = user === currentUser ? '#23a55a' : '#5865f2';
-                container.innerHTML += `
-                    <div class="member-item" onclick="openPrivateChat('${user}')">
-                        <div class="avatar" style="background-color: ${color}">${user.substring(0, 2)}</div>
-                        <span style="font-weight: ${user === currentUser ? 'bold' : 'normal'}">${user}</span>
-                        <div class="status-dot"></div>
-                    </div>
-                `;
+                container.innerHTML += `<div style="padding:5px 0; font-weight:${user===currentUser?'bold':'normal'}">🟢 ${user}</div>`;
             });
-        }
-
-        function openPrivateChat(user) {
-            if (user === currentUser) return;
-            switchMode('dm');
-            selectTarget(user);
         }
 
         function renderMessages() {
             const box = document.getElementById('messagesContainer');
             if (!box) return;
             box.innerHTML = "";
-            
-            const currentRoomMessages = allMessages.filter(m => {
-                if (isDMMode) {
-                    return m.isDM && ((m.author === currentUser && m.target === currentTarget) || (m.author === currentTarget && m.target === currentUser));
-                } else {
-                    return !m.isDM && m.target === currentTarget;
-                }
-            });
-
-            if (currentRoomMessages.length === 0) {
-                box.innerHTML = `<div style="color: #80848e; text-align: center; margin-top: 40px; font-size: 14px;">Пока здесь нет сообщений. Будьте первыми!</div>`;
-                return;
-            }
-
-            currentRoomMessages.forEach(m => {
-                box.innerHTML += `
-                    <div class="message">
-                        <div class="avatar" style="background-color: ${m.author === 'Система' ? '#e91e63' : '#5865f2'}">${m.author.substring(0,2)}</div>
-                        <div class="msg-content">
-                            <div class="msg-author">${m.author} <span class="msg-time">${m.time}</span></div>
-                            <div class="msg-text">${m.text}</div>
-                        </div>
-                    </div>
-                `;
+            allMessages.forEach(m => {
+                box.innerHTML += `<div><strong style="color:#5865f2">${m.author}:</strong> <span style="color:#dbdee1">${m.text}</span></div>`;
             });
             box.scrollTop = box.scrollHeight;
         }
@@ -286,7 +112,6 @@
                 if (!input) return;
                 const text = input.value.trim();
                 if (!text) return;
-                
                 sendMessageToDB(text);
                 input.value = "";
             }
