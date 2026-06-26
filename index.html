@@ -2,51 +2,34 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RazerCord P2P</title>
-    <script>
-    /*! peerjs build on top of webrtc */
-    !function(e,t){"object"==typeof exports&&"object"==typeof module?module.exports=t():"function"==typeof define&&define.amd?define([],t):"object"==typeof exports?exports.peerjs=t():e.peerjs=t()}(this,(function(){return function(e){var t={};function n(r){if(t[r])return t[r].exports;var o=t[r]={i:r,l:l,exports:{}};return e[r].call(o.exports,o,o.exports,n),o.l=!0,o.exports}return n.m=e,n.c=t,n.d=function(e,t,r){n.o(e,t)||Object.defineProperty(e,t,{enumerable:!0,get:r})},n.r=function(e){"undefined"!=typeof Symbol&&Symbol.toStringTag&&Object.defineProperty(e,Symbol.toStringTag,{value:"Module"}),Object.defineProperty(e,"__esModule",{value:!0})},n.t=function(e,t){if(1&t&&(e=n(e)),8&t)return e;if(4&t&&"object"==typeof e&&e&&e.__esModule)return e;var r=Object.create(null);if(n.r(r),Object.defineProperty(r,"default",{enumerable:!0,value:e}),2&t&&"string"!=typeof e)for(var o in e)n.d(r,o,function(t){return e[t]}.bind(null,o));return r},n.n=function(e){var t=e&&e.__esModule?function(){return e.default}:function(){return e};return n.d(t,"a",t),t},n.o=function(e,t){return Object.prototype.hasOwnProperty.call(e,t)},n.p="",n(n.s=0)}([function(e,t,n){"use strict";n.r(t);var r=window.RTCPeerConnection||window.mozRTCPeerConnection||window.webkitRTCPeerConnection;window.Peer=function(e,t){this.id=e,t=t||{},this.options=t;var n=this;setTimeout((function(){n.id?n._open(n.id):n._open("razer-"+Math.floor(1e3+9e3*Math.random()))}),10)},Peer.prototype._open=function(e){this.id=e,this.connections={};var t=this;this.ws=new WebSocket("wss://://peerjs.com"+e+"&token=razer"),this.ws.onopen=function(){if(t.onopen)t.onopen(e)},this.ws.onmessage=function(e){var n=JSON.parse(e.data);if("OFFER"===n.type){var r=new PeerConnection(t,n.src);t.connections[n.src]=r,r.handleOffer(n)}else if(t.connections[n.src])t.connections[n.src].handleMessage(n)}},Peer.prototype.connect=function(e){var t=new PeerConnection(this,e);return this.connections[e]=t,t.startConnection(),t};var o=window.RTCSessionDescription||window.mozRTCSessionDescription||window.webkitRTCSessionDescription;function PeerConnection(e,t){this.peer=e,this.target=t,this.pc=new r({iceServers:[{urls:"stun:://google.com"}]}),this.dc=null;var n=this;this.pc.onicecandidate=function(t){t.candidate&&e.ws.send(JSON.stringify({type:"CANDIDATE",dst:n.target,src:e.id,candidate:t.candidate}))}}PeerConnection.prototype.startConnection=function(){var e=this;this.dc=this.pc.createDataChannel("chat"),this.setupDataChannel(),this.pc.createOffer().then((function(t){return e.pc.setLocalDescription(t).then((function(){e.peer.ws.send(JSON.stringify({type:"OFFER",dst:e.target,src:e.peer.id,sdp:t}))}))}))},PeerConnection.prototype.handleOffer=function(e){var t=this;this.pc.ondatachannel=function(e){t.dc=e.channel,t.setupDataChannel()},this.pc.setRemoteDescription(new o(e.sdp)).then((function(){return t.pc.createAnswer().then((function(n){return t.pc.setLocalDescription(n).then((function(){t.peer.ws.send(JSON.stringify({type:"ANSWER",dst:e.src,src:t.peer.id,sdp:n}))}))}))}))},PeerConnection.prototype.handleMessage=function(e){"ANSWER"===e.type?this.pc.setRemoteDescription(new o(e.sdp)):"CANDIDATE"===e.type&&this.pc.addIceCandidate(e.candidate)},PeerConnection.prototype.setupDataChannel=function(){var e=this;this.dc.onopen=function(){if(e.onopen)e.onopen()},this.dc.onmessage=function(t){if(e.ondata)e.ondata(JSON.parse(t.data))}},PeerConnection.prototype.send=function(e){this.dc&&"open"===this.dc.readyState&&this.dc.send(JSON.stringify(e))};
-    </script>
+    <title>RazerCord Global</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: sans-serif; }
-        body { display: flex; height: 100vh; background-color: #313338; color: #dbdee1; overflow: hidden; }
-        .sidebar { width: 240px; background-color: #2b2d31; display: flex; flex-direction: column; padding: 10px; gap: 5px; }
-        .chat-area { flex: 1; display: flex; flex-direction: column; background-color: #313338; }
-        .messages-container { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-        .input-container { padding: 20px; }
-        .chat-input { width: 100%; padding: 15px; background-color: #383a40; border: none; border-radius: 8px; color: #fff; outline: none; }
-        .members-bar { width: 200px; background-color: #2b2d31; padding: 10px; }
-        .login-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #1e1f22; display: flex; align-items: center; justify-content: center; z-index: 100; }
-        .login-box { background-color: #313338; padding: 30px; border-radius: 8px; text-align: center; width: 400px; }
-        .login-input { width: 100%; padding: 10px; background-color: #1e1f22; border: 1px solid #111; border-radius: 4px; color: #fff; margin-bottom: 10px; }
-        .login-btn { width: 100%; padding: 10px; background-color: #5865f2; border: none; border-radius: 4px; color: #fff; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        * { margin:0; padding:0; box-sizing:border-box; font-family:sans-serif; }
+        body { display:flex; height:100vh; background:#313338; color:#dbdee1; overflow:hidden; }
+        .sidebar { width:240px; background:#2b2d31; display:flex; flex-direction:column; padding:10px; gap:5px; }
+        .chat-area { flex:1; display:flex; flex-direction:column; background:#313338; }
+        .messages-container { flex:1; padding:20px; overflow-y:auto; display:flex; flex-direction:column; gap:10px; }
+        .input-container { padding:20px; }
+        .chat-input { width:100%; padding:15px; background:#383a40; border:none; border-radius:8px; color:#fff; outline:none; }
+        .members-bar { width:200px; background:#2b2d31; padding:10px; }
+        .login-overlay { position:fixed; top:0; left:0; width:100vw; height:100vh; background:#1e1f22; display:flex; align-items:center; justify-content:center; z-index:100; }
+        .login-box { background:#313338; padding:30px; border-radius:8px; text-align:center; }
+        .login-input { width:100%; padding:10px; background:#1e1f22; border:1px solid #111; border-radius:4px; color:#fff; margin-bottom:15px; }
+        .login-btn { width:100%; padding:10px; background:#5865f2; border:none; border-radius:4px; color:#fff; font-weight:bold; cursor:pointer; }
     </style>
 </head>
 <body>
     <div class="login-overlay" id="loginOverlay">
         <div class="login-box">
-            <h2 style="color:#fff; margin-bottom:15px;">Создать или Войти</h2>
-            <input type="text" class="login-input" id="nicknameInput" placeholder="Твой никнейм">
-            
-            <div style="border-top: 1px solid #404249; margin: 15px 0; padding-top: 15px;">
-                <p style="color:#b5bac1; font-size:13px; margin-bottom:8px;">Если ты Админ (создаешь сервер):</p>
-                <button class="login-btn" onclick="startAsHost()">1. Создать сервер</button>
-            </div>
-
-            <div style="border-top: 1px solid #404249; margin: 15px 0; padding-top: 15px;">
-                <p style="color:#b5bac1; font-size:13px; margin-bottom:8px;">Если подключаешься к другу:</p>
-                <input type="text" class="login-input" id="hostIdInput" placeholder="Введи секретный ID друга">
-                <button class="login-btn" style="background-color: #23a55a;" onclick="connectToHost()">2. Подключиться к другу</button>
-            </div>
+            <h2 style="color:#fff; margin-bottom:15px;">С возвращением!</h2>
+            <input type="text" class="login-input" id="nicknameInput" placeholder="Введите ваш никнейм">
+            <button class="login-btn" onclick="login()">Войти в чат</button>
         </div>
     </div>
-
     <div class="sidebar">
         <h3 style="color:#fff; margin-bottom:10px;">🎮 RazerCord</h3>
-        <div style="background:#404249; padding:8px; border-radius:4px; color:#fff;" id="roomCodeBlock">ID: Создание...</div>
+        <div style="background:#404249; padding:8px; border-radius:4px; color:#fff;"># общий</div>
     </div>
-
     <div class="chat-area">
         <div style="padding:15px; border-bottom:1px solid #1f2023; font-weight:bold; color:#fff;"># общий</div>
         <div class="messages-container" id="messagesContainer"></div>
@@ -54,7 +37,6 @@
             <input type="text" class="chat-input" id="chatInput" placeholder="Написать в #общий..." onkeypress="handleKeyPress(event)">
         </div>
     </div>
-
     <div class="members-bar">
         <h4 style="font-size:12px; color:#949ba4; margin-bottom:10px;">В СЕТИ</h4>
         <div id="usersList"></div>
@@ -62,83 +44,55 @@
 
     <script>
         let currentUser = "";
-        let peer = null;
-        let connections = []; 
-        let connToHost = null; 
-        let allMessages = [{ author: "Система", text: "Добро пожаловать в RazerCord P2P!" }];
+        let allMessages = [{ author: "Система", text: "Добро пожаловать в глобальный RazerCord!" }];
         let activeUsers = new Set(["Система"]);
+        let ws;
 
-        function initUI() {
-            document.getElementById('loginOverlay').style.display = 'none';
+        function connect() {
+            // Подключаемся к бесплатному публичному тестовому серверу, который открыт для всех
+            ws = new WebSocket("wss://echo.websocket.org");
+
+            ws.onopen = () => {
+                // Маякуем всем, что мы онлайн
+                send({ type: "online", user: currentUser });
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    // Сервер возвращает нам наши же сообщения, парсим их
+                    const data = JSON.parse(event.data);
+                    if (data.type === "msg") {
+                        allMessages.push(data.payload);
+                        renderMessages();
+                    } else if (data.type === "online") {
+                        if (data.user) activeUsers.add(data.user);
+                        renderUsers();
+                    }
+                } catch (e) {}
+            };
+
+            ws.onclose = () => { setTimeout(connect, 2000); };
+        }
+
+        function send(obj) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify(obj));
+            }
+        }
+
+        function login() {
+            const nick = document.getElementById('nicknameInput').value.trim();
+            if (!nick) return alert("Введите ник!");
+            currentUser = nick;
             activeUsers.add(currentUser);
+            document.getElementById('loginOverlay').style.display = 'none';
+            
             renderUsers();
             renderMessages();
-        }
+            connect();
 
-        function startAsHost() {
-            currentUser = document.getElementById('nicknameInput').value.trim();
-            if (!currentUser) return alert("Введи ник!");
-
-            const roomId = 'razer-' + Math.floor(1000 + Math.random() * 9000);
-            peer = new Peer(roomId);
-
-            peer.on('open', (id) => {
-                document.getElementById('roomCodeBlock').innerText = "ID сервера: " + id;
-                initUI();
-            });
-
-            peer.on('connection', (conn) => {
-                connections.push(conn);
-                conn.on('data', (data) => {
-                    if (data.type === 'login') {
-                        activeUsers.add(data.user);
-                        renderUsers();
-                        broadcast({ type: 'sys_users', users: Array.from(activeUsers) });
-                        conn.send({ type: 'history', messages: allMessages });
-                    } else if (data.type === 'msg') {
-                        allMessages.push(data.msg);
-                        renderMessages();
-                        broadcast({ type: 'msg', msg: data.msg });
-                    }
-                });
-            });
-        }
-
-        function connectToHost() {
-            currentUser = document.getElementById('nicknameInput').value.trim();
-            const hostId = document.getElementById('hostIdInput').value.trim();
-            if (!currentUser || !hostId) return alert("Заполни ник и ID друга!");
-
-            peer = new Peer();
-
-            peer.on('open', () => {
-                connToHost = peer.connect(hostId);
-                document.getElementById('roomCodeBlock').innerText = "Подключен к: " + hostId;
-                initUI();
-
-                connToHost.on('open', () => {
-                    connToHost.send({ type: 'login', user: currentUser });
-                });
-
-                connToHost.on('data', (data) => {
-                    if (data.type === 'msg') {
-                        allMessages.push(data.msg);
-                        renderMessages();
-                    } else if (data.type === 'sys_users') {
-                        activeUsers = new Set(data.users);
-                        renderUsers();
-                    } else if (data.type === 'history') {
-                        allMessages = data.messages;
-                        renderMessages();
-                    }
-                });
-            });
-        }
-
-        function broadcast(data) {
-            connections.forEach(conn => {
-                if (conn.dc && conn.dc.readyState === "open") conn.send(data);
-            });
+            // Каждые 3 секунды обновляем статус сети
+            setInterval(() => { send({ type: "online", user: currentUser }); }, 3000);
         }
 
         function renderUsers() {
@@ -163,18 +117,18 @@
         function handleKeyPress(e) {
             if (e.key === 'Enter') {
                 const input = document.getElementById('chatInput');
+                if (!input) return;
                 const text = input.value.trim();
                 if (!text) return;
-
+                
                 const msgObj = { author: currentUser, text: text };
+                
+                // Отображаем у себя локально сразу
                 allMessages.push(msgObj);
                 renderMessages();
-
-                if (connToHost) {
-                    connToHost.send({ type: 'msg', msg: msgObj });
-                } else {
-                    broadcast({ type: 'msg', msg: msgObj });
-                }
+                
+                // Пускаем в сеть
+                send({ type: "msg", payload: msgObj });
                 input.value = "";
             }
         }
