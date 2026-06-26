@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RazerCord Web</title>
+    <title>RazerCord Database</title>
+    <!-- Подключаем официальную библиотеку Supabase -->
+    <script src="https://jsdelivr.net"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { display: flex; height: 100vh; background-color: #313338; color: #dbdee1; overflow: hidden; }
@@ -93,57 +95,64 @@
     </div>
 
     <script>
+        const SUPABASE_URL = "https://supabase.co";
+        const SUPABASE_KEY = "sb_publishable_XjIh1zl_Q4wC0iDCUwNWug_L9N6g57o";
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
         let currentUser = "";
         let currentTarget = "общий"; 
         let isDMMode = false; 
-        let socket;
 
         let allMessages = [];
         let activeUsers = new Set();
 
-        // Подключаемся к суперстабильному свободному эхо-серверу SocketsBay
-        function connectWebSocket() {
-            // Уникальный ID комнаты, чтобы не пересекаться с другими (razercord_global_v2)
-            socket = new WebSocket('wss://://socketsbay.com');
+        // Загрузка истории сообщений из базы данных Supabase
+        async function fetchMessages() {
+            try {
+                const { data, error } = await supabase
+                    .from('messages')
+                    .select('*')
+                    .order('created_at', { ascending: true });
 
-            socket.onopen = () => {
-                sendNetworkMessage({ type: 'user_online', user: currentUser });
-            };
+                if (error) throw error;
 
-            socket.onmessage = (event) => {
-                try {
-                    const data = JSON.parse(event.data);
-                    
-                    if (data.type === 'msg_broadcast') {
-                        if (!allMessages.some(m => m.id === data.msg.id)) {
-                            allMessages.push(data.msg);
-                            renderMessages();
-                        }
-                    } else if (data.type === 'user_online') {
-                        if (!activeUsers.has(data.user)) {
-                            activeUsers.add(data.user);
-                            renderUsers();
-                            if (isDMMode) renderSidebar();
-                            sendNetworkMessage({ type: 'sync_back', user: currentUser });
-                        }
-                    } else if (data.type === 'sync_back') {
-                        if (!activeUsers.has(data.user)) {
-                            activeUsers.add(data.user);
-                            renderUsers();
-                            if (isDMMode) renderSidebar();
-                        }
+                allMessages = data.map(m => ({
+                    id: m.id,
+                    author: m.author,
+                    text: m.text,
+                    target: m.target,
+                    isDM: m.is_dm,
+                    time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                }));
+
+                // Собираем всех уникальных авторов сообщений, чтобы наполнить список друзей
+                allMessages.forEach(m => {
+                    if (m.author && m.author !== "Система") {
+                        activeUsers.add(m.author);
                     }
-                } catch(e) { }
-            };
+                });
 
-            socket.onclose = () => {
-                setTimeout(connectWebSocket, 2000);
-            };
+                renderUsers();
+                if (isDMMode) renderSidebar();
+                renderMessages();
+            } catch (err) {
+                console.error("Ошибка загрузки сообщений:", err);
+            }
         }
 
-        function sendNetworkMessage(obj) {
-            if (socket && socket.readyState === WebSocket.OPEN) {
-                socket.send(JSON.stringify(obj));
+        // Отправка нового сообщения в базу данных Supabase
+        async function sendMessageToDB(text) {
+            try {
+                const { error } = await supabase
+                    .from('messages')
+                    .insert([
+                        { author: currentUser, text: text, target: currentTarget, is_dm: isDMMode }
+                    ]);
+
+                if (error) throw error;
+                fetchMessages(); // Обновляем чат сразу после отправки
+            } catch (err) {
+                console.error("Ошибка отправки:", err);
             }
         }
 
@@ -154,23 +163,16 @@
             activeUsers.add(currentUser);
             document.getElementById('loginOverlay').style.display = 'none';
             
-            connectWebSocket();
             initChat();
             
-            // Каждые 4 секунды пингуем сеть, чтобы ник железно держался в списке "В сети"
-            setInterval(() => {
-                sendNetworkMessage({ type: 'user_online', user: currentUser });
-                if (!activeUsers.has(currentUser)) {
-                    activeUsers.add(currentUser);
-                    renderUsers();
-                }
-            }, 4000);
+            // Каждые 3 секунды автоматически проверяем базу данных на наличие новых сообщений
+            setInterval(fetchMessages, 3000);
         }
 
         function initChat() {
             renderSidebar();
             renderUsers();
-            renderMessages();
+            fetchMessages();
         }
 
         function switchMode(mode) {
@@ -193,6 +195,7 @@
 
         function renderSidebar() {
             const list = document.getElementById('channelsList');
+            if (!list) return;
             list.innerHTML = "";
             
             if (!isDMMode) {
@@ -221,8 +224,11 @@
 
         function renderUsers() {
             const container = document.getElementById('usersList');
+            const countSpan = document.getElementById('onlineCount');
+            if (!container || !countSpan) return;
+            
             container.innerHTML = "";
-            document.getElementById('onlineCount').innerText = activeUsers.size;
+            countSpan.innerText = activeUsers.size;
             
             activeUsers.forEach(user => {
                 const color = user === currentUser ? '#23a55a' : '#5865f2';
@@ -244,6 +250,7 @@
 
         function renderMessages() {
             const box = document.getElementById('messagesContainer');
+            if (!box) return;
             box.innerHTML = "";
             
             const currentRoomMessages = allMessages.filter(m => {
@@ -276,22 +283,11 @@
         function handleKeyPress(e) {
             if (e.key === 'Enter') {
                 const input = document.getElementById('chatInput');
+                if (!input) return;
                 const text = input.value.trim();
                 if (!text) return;
                 
-                const now = new Date();
-                const timestamp = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                
-                const msgObj = {
-                    id: Date.now() + Math.random(),
-                    author: currentUser,
-                    text: text,
-                    time: timestamp,
-                    target: currentTarget,
-                    isDM: isDMMode
-                };
-                
-                sendNetworkMessage({ type: 'msg_broadcast', msg: msgObj });
+                sendMessageToDB(text);
                 input.value = "";
             }
         }
