@@ -2,8 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>RazerCord</title>
-    <script src="https://cloudflare.com"></script>
+    <title>RazerCord Локальный</title>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; font-family:sans-serif; }
         body { display:flex; height:100vh; background:#313338; color:#dbdee1; overflow:hidden; }
@@ -35,42 +34,41 @@
         <div style="padding:15px; border-bottom:1px solid #1f2023; font-weight:bold; color:#fff;"># общий</div>
         <div class="messages-container" id="messagesContainer"></div>
         <div class="input-container">
-            <input type="text" class="chat-input" id="chatInput" placeholder="Написать в #общий..." onkeypress="handleKeyPress(event)">
+            <input type="text" class="chat-input" id="chatInput" placeholder="Написать в #общий...">
         </div>
     </div>
     <div class="members-bar">
         <h4 style="font-size:12px; color:#949ba4; margin-bottom:10px;">В СЕТИ</h4>
         <div id="usersList"></div>
     </div>
+
     <script>
-        const SUPABASE_URL = "https://pzphlmbrhospfjinjixo.supabase.co";
-        const SUPABASE_KEY = "sb_publishable_XjIh1zl_Q4wC0iDCUwNWug_L9N6g57o";
-        let supabase = null;
         let currentUser = "";
         let allMessages = [];
         let activeUsers = new Set();
 
-        async function fetchMessages() {
-            if (!supabase) return;
-            try {
-                const { data, error } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
-                if (error) throw error;
-                allMessages = data;
-                activeUsers.clear();
-                allMessages.forEach(m => { if(m.author) activeUsers.add(m.author); });
-                if(currentUser) activeUsers.add(currentUser);
-                renderUsers();
-                renderMessages();
-            } catch (err) { console.error(err); }
+        // Загрузка из памяти твоего браузера
+        function loadLocalMessages() {
+            const saved = localStorage.getItem('razercord_messages');
+            if (saved) {
+                allMessages = JSON.parse(saved);
+            } else {
+                allMessages = [{ author: "Система", text: "Добро пожаловать в RazerCord! Напишите первое сообщение." }];
+            }
+            
+            activeUsers.clear();
+            allMessages.forEach(m => { if(m.author) activeUsers.add(m.author); });
+            if(currentUser) activeUsers.add(currentUser);
+            
+            renderUsers();
+            renderMessages();
         }
 
-        async function sendMessageToDB(text) {
-            if (!supabase) return;
-            try {
-                const { error } = await supabase.from('messages').insert([{ author: currentUser, text: text, target: 'общий', is_dm: false }]);
-                if (error) throw error;
-                fetchMessages();
-            } catch (err) { console.error(err); }
+        // Сохранение в память браузера
+        function saveMessageLocal(text) {
+            allMessages.push({ author: currentUser, text: text });
+            localStorage.setItem('razercord_messages', JSON.stringify(allMessages));
+            loadLocalMessages();
         }
 
         function login() {
@@ -78,13 +76,7 @@
             if (!nick) return alert("Введите ник!");
             currentUser = nick;
             document.getElementById('loginOverlay').style.display = 'none';
-            if (window.supabase) {
-                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-                fetchMessages();
-                setInterval(fetchMessages, 3000);
-            } else {
-                alert("Ошибка загрузки базы данных. Попробуйте обновить страницу.");
-            }
+            loadLocalMessages();
         }
 
         function renderUsers() {
@@ -92,7 +84,7 @@
             if (!container) return;
             container.innerHTML = "";
             activeUsers.forEach(user => {
-                container.innerHTML += `<div style="padding:5px 0; font-weight:${user===currentUser?'bold':'normal'}">🟢 ${user}</div>`;
+                container.innerHTML += `<div style="padding:5px 0; color:#fff;">🟢 ${user}</div>`;
             });
         }
 
@@ -101,21 +93,25 @@
             if (!box) return;
             box.innerHTML = "";
             allMessages.forEach(m => {
-                box.innerHTML += `<div><strong style="color:#5865f2">${m.author}:</strong> <span style="color:#dbdee1">${m.text}</span></div>`;
+                box.innerHTML += `<div style="margin-bottom:5px;"><strong style="color:#5865f2">${m.author}</strong> <span style="color:#dbdee1">${m.text}</span></div>`;
             });
             box.scrollTop = box.scrollHeight;
         }
 
-        function handleKeyPress(e) {
-            if (e.key === 'Enter') {
-                const input = document.getElementById('chatInput');
-                if (!input) return;
-                const text = input.value.trim();
-                if (!text) return;
-                sendMessageToDB(text);
-                input.value = "";
+        // Ловим нажатие Enter в поле ввода
+        document.addEventListener('DOMContentLoaded', () => {
+            const input = document.getElementById('chatInput');
+            if (input) {
+                input.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        const text = input.value.trim();
+                        if (!text) return;
+                        saveMessageLocal(text);
+                        input.value = "";
+                    }
+                });
             }
-        }
+        });
     </script>
 </body>
 </html>
