@@ -97,7 +97,7 @@
     <script>
         const SUPABASE_URL = "https://supabase.co";
         const SUPABASE_KEY = "sb_publishable_XjIh1zl_Q4wC0iDCUwNWug_L9N6g57o";
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let currentUser = "";
         let currentTarget = "общий"; 
