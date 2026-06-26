@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>RazerCord Локальный</title>
+    <title>RazerCord Тест</title>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; font-family:sans-serif; }
         body { display:flex; height:100vh; background:#313338; color:#dbdee1; overflow:hidden; }
@@ -34,7 +34,7 @@
         <div style="padding:15px; border-bottom:1px solid #1f2023; font-weight:bold; color:#fff;"># общий</div>
         <div class="messages-container" id="messagesContainer"></div>
         <div class="input-container">
-            <input type="text" class="chat-input" id="chatInput" placeholder="Написать в #общий...">
+            <input type="text" class="chat-input" id="chatInput" placeholder="Написать в #общий..." onkeypress="handleKeyPress(event)">
         </div>
     </div>
     <div class="members-bar">
@@ -44,39 +44,40 @@
 
     <script>
         let currentUser = "";
-        let allMessages = [];
-        let activeUsers = new Set();
+        let allMessages = [{ author: "Система", text: "Добро пожаловать! Открой вторую такую же вкладку рядом для теста." }];
+        let activeUsers = new Set(["Система"]);
 
-        // Загрузка из памяти твоего браузера
-        function loadLocalMessages() {
-            const saved = localStorage.getItem('razercord_messages');
-            if (saved) {
-                allMessages = JSON.parse(saved);
-            } else {
-                allMessages = [{ author: "Система", text: "Добро пожаловать в RazerCord! Напишите первое сообщение." }];
+        // Создаем канал связи между вкладками одного браузера
+        const bc = new BroadcastChannel('razercord_bridge');
+
+        bc.onmessage = (event) => {
+            const data = event.data;
+            if (data.type === 'msg') {
+                allMessages.push(data.msg);
+                renderMessages();
+            } else if (data.type === 'ping') {
+                if(data.user) activeUsers.add(data.user);
+                renderUsers();
+                bc.postMessage({ type: 'pong', user: currentUser });
+            } else if (data.type === 'pong') {
+                if(data.user) activeUsers.add(data.user);
+                renderUsers();
             }
-            
-            activeUsers.clear();
-            allMessages.forEach(m => { if(m.author) activeUsers.add(m.author); });
-            if(currentUser) activeUsers.add(currentUser);
-            
-            renderUsers();
-            renderMessages();
-        }
-
-        // Сохранение в память браузера
-        function saveMessageLocal(text) {
-            allMessages.push({ author: currentUser, text: text });
-            localStorage.setItem('razercord_messages', JSON.stringify(allMessages));
-            loadLocalMessages();
-        }
+        };
 
         function login() {
             const nick = document.getElementById('nicknameInput').value.trim();
             if (!nick) return alert("Введите ник!");
             currentUser = nick;
+            activeUsers.add(currentUser);
             document.getElementById('loginOverlay').style.display = 'none';
-            loadLocalMessages();
+            
+            renderUsers();
+            renderMessages();
+
+            // Маякуем другим вкладкам, что мы онлайн
+            bc.postMessage({ type: 'ping', user: currentUser });
+            setInterval(() => { bc.postMessage({ type: 'ping', user: currentUser }); }, 2000);
         }
 
         function renderUsers() {
@@ -93,25 +94,25 @@
             if (!box) return;
             box.innerHTML = "";
             allMessages.forEach(m => {
-                box.innerHTML += `<div style="margin-bottom:5px;"><strong style="color:#5865f2">${m.author}</strong> <span style="color:#dbdee1">${m.text}</span></div>`;
+                box.innerHTML += `<div style="margin-bottom:5px;"><strong style="color:#5865f2">${m.author}:</strong> <span style="color:#dbdee1">${m.text}</span></div>`;
             });
             box.scrollTop = box.scrollHeight;
         }
 
-        // Ловим нажатие Enter в поле ввода
-        document.addEventListener('DOMContentLoaded', () => {
-            const input = document.getElementById('chatInput');
-            if (input) {
-                input.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') {
-                        const text = input.value.trim();
-                        if (!text) return;
-                        saveMessageLocal(text);
-                        input.value = "";
-                    }
-                });
+        function handleKeyPress(e) {
+            if (e.key === 'Enter') {
+                const input = document.getElementById('chatInput');
+                const text = input.value.trim();
+                if (!text) return;
+                
+                const msgObj = { author: currentUser, text: text };
+                allMessages.push(msgObj);
+                renderMessages();
+                
+                bc.postMessage({ type: 'msg', msg: msgObj });
+                input.value = "";
             }
-        });
+        }
     </script>
 </body>
 </html>
