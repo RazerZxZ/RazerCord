@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RazerCord P2P</title>
-    <!-- Подключаем библиотеку прямой связи PeerJS, которая работает без блокировок в РФ -->
-    <script src="https://unpkg.com"></script>
+    <script>
+    /*! peerjs build on top of webrtc */
+    !function(e,t){"object"==typeof exports&&"object"==typeof module?module.exports=t():"function"==typeof define&&define.amd?define([],t):"object"==typeof exports?exports.peerjs=t():e.peerjs=t()}(this,(function(){return function(e){var t={};function n(r){if(t[r])return t[r].exports;var o=t[r]={i:r,l:l,exports:{}};return e[r].call(o.exports,o,o.exports,n),o.l=!0,o.exports}return n.m=e,n.c=t,n.d=function(e,t,r){n.o(e,t)||Object.defineProperty(e,t,{enumerable:!0,get:r})},n.r=function(e){"undefined"!=typeof Symbol&&Symbol.toStringTag&&Object.defineProperty(e,Symbol.toStringTag,{value:"Module"}),Object.defineProperty(e,"__esModule",{value:!0})},n.t=function(e,t){if(1&t&&(e=n(e)),8&t)return e;if(4&t&&"object"==typeof e&&e&&e.__esModule)return e;var r=Object.create(null);if(n.r(r),Object.defineProperty(r,"default",{enumerable:!0,value:e}),2&t&&"string"!=typeof e)for(var o in e)n.d(r,o,function(t){return e[t]}.bind(null,o));return r},n.n=function(e){var t=e&&e.__esModule?function(){return e.default}:function(){return e};return n.d(t,"a",t),t},n.o=function(e,t){return Object.prototype.hasOwnProperty.call(e,t)},n.p="",n(n.s=0)}([function(e,t,n){"use strict";n.r(t);var r=window.RTCPeerConnection||window.mozRTCPeerConnection||window.webkitRTCPeerConnection;window.Peer=function(e,t){this.id=e,t=t||{},this.options=t;var n=this;setTimeout((function(){n.id?n._open(n.id):n._open("razer-"+Math.floor(1e3+9e3*Math.random()))}),10)},Peer.prototype._open=function(e){this.id=e,this.connections={};var t=this;this.ws=new WebSocket("wss://://peerjs.com"+e+"&token=razer"),this.ws.onopen=function(){if(t.onopen)t.onopen(e)},this.ws.onmessage=function(e){var n=JSON.parse(e.data);if("OFFER"===n.type){var r=new PeerConnection(t,n.src);t.connections[n.src]=r,r.handleOffer(n)}else if(t.connections[n.src])t.connections[n.src].handleMessage(n)}},Peer.prototype.connect=function(e){var t=new PeerConnection(this,e);return this.connections[e]=t,t.startConnection(),t};var o=window.RTCSessionDescription||window.mozRTCSessionDescription||window.webkitRTCSessionDescription;function PeerConnection(e,t){this.peer=e,this.target=t,this.pc=new r({iceServers:[{urls:"stun:://google.com"}]}),this.dc=null;var n=this;this.pc.onicecandidate=function(t){t.candidate&&e.ws.send(JSON.stringify({type:"CANDIDATE",dst:n.target,src:e.id,candidate:t.candidate}))}}PeerConnection.prototype.startConnection=function(){var e=this;this.dc=this.pc.createDataChannel("chat"),this.setupDataChannel(),this.pc.createOffer().then((function(t){return e.pc.setLocalDescription(t).then((function(){e.peer.ws.send(JSON.stringify({type:"OFFER",dst:e.target,src:e.peer.id,sdp:t}))}))}))},PeerConnection.prototype.handleOffer=function(e){var t=this;this.pc.ondatachannel=function(e){t.dc=e.channel,t.setupDataChannel()},this.pc.setRemoteDescription(new o(e.sdp)).then((function(){return t.pc.createAnswer().then((function(n){return t.pc.setLocalDescription(n).then((function(){t.peer.ws.send(JSON.stringify({type:"ANSWER",dst:e.src,src:t.peer.id,sdp:n}))}))}))}))},PeerConnection.prototype.handleMessage=function(e){"ANSWER"===e.type?this.pc.setRemoteDescription(new o(e.sdp)):"CANDIDATE"===e.type&&this.pc.addIceCandidate(e.candidate)},PeerConnection.prototype.setupDataChannel=function(){var e=this;this.dc.onopen=function(){if(e.onopen)e.onopen()},this.dc.onmessage=function(t){if(e.ondata)e.ondata(JSON.parse(t.data))}},PeerConnection.prototype.send=function(e){this.dc&&"open"===this.dc.readyState&&this.dc.send(JSON.stringify(e))};
+    </script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: sans-serif; }
         body { display: flex; height: 100vh; background-color: #313338; color: #dbdee1; overflow: hidden; }
@@ -22,7 +24,6 @@
     </style>
 </head>
 <body>
-
     <div class="login-overlay" id="loginOverlay">
         <div class="login-box">
             <h2 style="color:#fff; margin-bottom:15px;">Создать или Войти</h2>
@@ -62,8 +63,8 @@
     <script>
         let currentUser = "";
         let peer = null;
-        let connections = []; // Для админа: храним всех зашедших друзей
-        let connToHost = null; // Для друга: связь с админом
+        let connections = []; 
+        let connToHost = null; 
         let allMessages = [{ author: "Система", text: "Добро пожаловать в RazerCord P2P!" }];
         let activeUsers = new Set(["Система"]);
 
@@ -74,12 +75,10 @@
             renderMessages();
         }
 
-        // 1. ЛОГИКА ДЛЯ АДМИНА (Создание комнаты)
         function startAsHost() {
             currentUser = document.getElementById('nicknameInput').value.trim();
             if (!currentUser) return alert("Введи ник!");
 
-            // Генерируем случайный красивый ID комнаты
             const roomId = 'razer-' + Math.floor(1000 + Math.random() * 9000);
             peer = new Peer(roomId);
 
@@ -88,17 +87,13 @@
                 initUI();
             });
 
-            // Ждем подключений от друзей
             peer.on('connection', (conn) => {
                 connections.push(conn);
-                
                 conn.on('data', (data) => {
                     if (data.type === 'login') {
                         activeUsers.add(data.user);
                         renderUsers();
-                        // Рассылаем обновленный список пользователей всем
                         broadcast({ type: 'sys_users', users: Array.from(activeUsers) });
-                        // Отправляем новому другу историю сообщений
                         conn.send({ type: 'history', messages: allMessages });
                     } else if (data.type === 'msg') {
                         allMessages.push(data.msg);
@@ -109,7 +104,6 @@
             });
         }
 
-        // 2. ЛОГИКА ДЛЯ ДРУГА (Подключение)
         function connectToHost() {
             currentUser = document.getElementById('nicknameInput').value.trim();
             const hostId = document.getElementById('hostIdInput').value.trim();
@@ -123,7 +117,6 @@
                 initUI();
 
                 connToHost.on('open', () => {
-                    // Отправляем админу свой никнейм
                     connToHost.send({ type: 'login', user: currentUser });
                 });
 
@@ -142,10 +135,9 @@
             });
         }
 
-        // Функция админа для рассылки данных всем подключенным друзьям
         function broadcast(data) {
             connections.forEach(conn => {
-                if (conn.open) conn.send(data);
+                if (conn.dc && conn.dc.readyState === "open") conn.send(data);
             });
         }
 
@@ -179,10 +171,8 @@
                 renderMessages();
 
                 if (connToHost) {
-                    // Если мы друг — отправляем админу
                     connToHost.send({ type: 'msg', msg: msgObj });
                 } else {
-                    // Если мы админ — рассылаем всем друзьям
                     broadcast({ type: 'msg', msg: msgObj });
                 }
                 input.value = "";
