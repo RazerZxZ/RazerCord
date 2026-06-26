@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Discord Web Clone</title>
+    <title>RazerCord Web</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { display: flex; height: 100vh; background-color: #313338; color: #dbdee1; overflow: hidden; }
         
-        /* Боковая панель серверов / ЛС */
+        /* Панель серверов */
         .servers-bar { width: 72px; background-color: #1e1f22; display: flex; flex-direction: column; align-items: center; padding-top: 12px; gap: 8px; }
         .server-icon { width: 48px; height: 48px; background-color: #313338; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; font-size: 24px; }
         .server-icon:hover, .server-icon.active { border-radius: 30%; background-color: #5865f2; }
 
-        /* Левая панель (Списки комнат и друзей) */
+        /* Левая панель комнат */
         .sidebar { width: 240px; background-color: #2b2d31; display: flex; flex-direction: column; }
         .sidebar-header { height: 48px; border-bottom: 1px solid #1f2023; display: flex; align-items: center; padding: 0 16px; font-weight: bold; color: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
         .channels-list { flex: 1; padding: 8px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
@@ -22,7 +22,7 @@
         .channel-item.active { background-color: #404249; color: #fff; }
         .channel-category { font-size: 12px; font-weight: bold; color: #949ba4; padding: 16px 8px 4px 8px; text-transform: uppercase; letter-spacing: 0.5px; }
 
-        /* Главная зона чата */
+        /* Окно чата */
         .chat-area { flex: 1; display: flex; flex-direction: column; background-color: #313338; }
         .chat-header { height: 48px; border-bottom: 1px solid #1f2023; display: flex; align-items: center; padding: 0 16px; font-weight: bold; color: #fff; gap: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
         .messages-container { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
@@ -36,32 +36,29 @@
         .msg-time { font-size: 12px; color: #949ba4; font-weight: normal; }
         .msg-text { font-size: 15px; color: #dbdee1; word-break: break-word; line-height: 1.4; }
 
-        /* Поле ввода сообщения */
+        /* Поле ввода */
         .input-container { padding: 0 16px 24px 16px; }
         .input-wrapper { background-color: #383a40; border-radius: 8px; padding: 11px 16px; display: flex; align-items: center; }
         .chat-input { flex: 1; background: none; border: none; color: #dbdee1; outline: none; font-size: 15px; width: 100%; }
         .chat-input::placeholder { color: #80848e; }
 
-        /* Правая панель (Список участников) */
+        /* Правая панель мемберов */
         .members-bar { width: 240px; background-color: #2b2d31; padding: 16px 8px; display: flex; flex-direction: column; gap: 4px; }
         .member-item { padding: 6px 8px; border-radius: 4px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: 0.1s; }
         .member-item:hover { background-color: #35373c; }
         .status-dot { width: 10px; height: 10px; background-color: #23a55a; border-radius: 50%; margin-left: auto; border: 2px solid #2b2d31; }
 
-        /* Экран авторизации (ввод ника) */
+        /* Вход */
         .login-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #1e1f22; display: flex; align-items: center; justify-content: center; z-index: 100; }
         .login-box { background-color: #313338; padding: 32px; border-radius: 8px; width: 400px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); text-align: center; }
         .login-box h2 { color: #fff; margin-bottom: 8px; font-size: 24px; }
         .login-box p { color: #b5bac1; font-size: 14px; margin-bottom: 24px; }
-        .login-input { width: 100%; padding: 12px; background-color: #1e1f22; border: 1px solid #111; border-radius: 4px; color: #fff; outline: none; margin-bottom: 20px; font-size: 16px; transition: 0.2s; }
-        .login-input:focus { border-color: #5865f2; }
-        .login-btn { width: 100%; padding: 13px; background-color: #5865f2; border: none; border-radius: 4px; color: #fff; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .login-btn:hover { background-color: #4752c4; }
+        .login-input { width: 100%; padding: 12px; background-color: #1e1f22; border: 1px solid #111; border-radius: 4px; color: #fff; outline: none; margin-bottom: 20px; font-size: 16px; }
+        .login-btn { width: 100%; padding: 13px; background-color: #5865f2; border: none; border-radius: 4px; color: #fff; font-size: 16px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <!-- Экран логина -->
     <div class="login-overlay" id="loginOverlay">
         <div class="login-box">
             <h2>С возвращением!</h2>
@@ -71,18 +68,15 @@
         </div>
     </div>
 
-    <!-- Левая полоса выбора режимов (Сервер / ЛС) -->
     <div class="servers-bar">
-        <div class="server-icon active" id="btnServer" onclick="switchMode('server')" title="Игровой сервер">🎮</div>
-        <div class="server-icon" id="btnDM" onclick="switchMode('dm')" title="Личные сообщения">💬</div>
+        <div class="server-icon active" id="btnServer" onclick="switchMode('server')">🎮</div>
+        <div class="server-icon" id="btnDM" onclick="switchMode('dm')">💬</div>
     </div>
-    <!-- Боковое меню каналов или друзей -->
     <div class="sidebar">
         <div class="sidebar-header" id="sidebarHeader">Игровой Сервер</div>
         <div class="channels-list" id="channelsList"></div>
     </div>
 
-    <!-- Основное окно чата -->
     <div class="chat-area">
         <div class="chat-header" id="chatHeader"># общий</div>
         <div class="messages-container" id="messagesContainer"></div>
@@ -93,7 +87,6 @@
         </div>
     </div>
 
-    <!-- Правая панель участников -->
     <div class="members-bar">
         <div class="channel-category">В сети — <span id="onlineCount">0</span></div>
         <div id="usersList"></div>
@@ -105,51 +98,46 @@
         let isDMMode = false; 
         let socket;
 
-        // Массив сообщений и список активных пользователей в сети
         let allMessages = [];
         let activeUsers = new Set();
 
-        // Подключаемся к бесплатному открытому WebSocket-серверу для обмена данными между устройствами
-        // Используем случайный уникальный ID комнаты (razercord_room_2026), чтобы никто чужой не влез
+        // Подключаемся к суперстабильному свободному эхо-серверу SocketsBay
         function connectWebSocket() {
-            socket = new WebSocket('wss://://piesocket.com');
+            // Уникальный ID комнаты, чтобы не пересекаться с другими (razercord_global_v2)
+            socket = new WebSocket('wss://://socketsbay.com');
 
             socket.onopen = () => {
-                // Как только подключились — заявляем всем в сети, что мы зашли
                 sendNetworkMessage({ type: 'user_online', user: currentUser });
             };
 
             socket.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                
-                if (data.type === 'msg_broadcast') {
-                    // Прилетело новое сообщение от друга или нас
-                    if (!allMessages.some(m => m.id === data.msg.id)) {
-                        allMessages.push(data.msg);
-                        renderMessages();
+                try {
+                    const data = JSON.parse(event.data);
+                    
+                    if (data.type === 'msg_broadcast') {
+                        if (!allMessages.some(m => m.id === data.msg.id)) {
+                            allMessages.push(data.msg);
+                            renderMessages();
+                        }
+                    } else if (data.type === 'user_online') {
+                        if (!activeUsers.has(data.user)) {
+                            activeUsers.add(data.user);
+                            renderUsers();
+                            if (isDMMode) renderSidebar();
+                            sendNetworkMessage({ type: 'sync_back', user: currentUser });
+                        }
+                    } else if (data.type === 'sync_back') {
+                        if (!activeUsers.has(data.user)) {
+                            activeUsers.add(data.user);
+                            renderUsers();
+                            if (isDMMode) renderSidebar();
+                        }
                     }
-                } else if (data.type === 'user_online') {
-                    // Кто-то зашел на сайт
-                    if (!activeUsers.has(data.user)) {
-                        activeUsers.add(data.user);
-                        renderUsers();
-                        if (isDMMode) renderSidebar();
-                        // Отправляем ответный сигнал, чтобы новый пользователь тоже увидел нас у себя
-                        sendNetworkMessage({ type: 'sync_back', user: currentUser });
-                    }
-                } else if (data.type === 'sync_back') {
-                    // Получили ответный сигнал синхронизации списков
-                    if (!activeUsers.has(data.user)) {
-                        activeUsers.add(data.user);
-                        renderUsers();
-                        if (isDMMode) renderSidebar();
-                    }
-                }
+                } catch(e) { }
             };
 
-            // Если интернет моргнул — автоматически подключаемся заново через 3 секунды
             socket.onclose = () => {
-                setTimeout(connectWebSocket, 3000);
+                setTimeout(connectWebSocket, 2000);
             };
         }
 
@@ -166,14 +154,17 @@
             activeUsers.add(currentUser);
             document.getElementById('loginOverlay').style.display = 'none';
             
-            // Запускаем интернет-сеть
             connectWebSocket();
             initChat();
             
-            // Каждые 10 секунд пингуем сеть, чтобы оставаться в списке «В сети»
+            // Каждые 4 секунды пингуем сеть, чтобы ник железно держался в списке "В сети"
             setInterval(() => {
                 sendNetworkMessage({ type: 'user_online', user: currentUser });
-            }, 10000);
+                if (!activeUsers.has(currentUser)) {
+                    activeUsers.add(currentUser);
+                    renderUsers();
+                }
+            }, 4000);
         }
 
         function initChat() {
@@ -300,7 +291,6 @@
                     isDM: isDMMode
                 };
                 
-                // Отправляем сообщение на сервер трансляции для всех
                 sendNetworkMessage({ type: 'msg_broadcast', msg: msgObj });
                 input.value = "";
             }
