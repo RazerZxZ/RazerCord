@@ -2,34 +2,50 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>RazerCord Тест</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RazerCord P2P</title>
+    <!-- Подключаем библиотеку прямой связи PeerJS, которая работает без блокировок в РФ -->
+    <script src="https://cloudflare.com"></script>
     <style>
-        * { margin:0; padding:0; box-sizing:border-box; font-family:sans-serif; }
-        body { display:flex; height:100vh; background:#313338; color:#dbdee1; overflow:hidden; }
-        .sidebar { width:240px; background:#2b2d31; display:flex; flex-direction:column; padding:10px; gap:5px; }
-        .chat-area { flex:1; display:flex; flex-direction:column; background:#313338; }
-        .messages-container { flex:1; padding:20px; overflow-y:auto; display:flex; flex-direction:column; gap:10px; }
-        .input-container { padding:20px; }
-        .chat-input { width:100%; padding:15px; background:#383a40; border:none; border-radius:8px; color:#fff; outline:none; }
-        .members-bar { width:200px; background:#2b2d31; padding:10px; }
-        .login-overlay { position:fixed; top:0; left:0; width:100vw; height:100vh; background:#1e1f22; display:flex; align-items:center; justify-content:center; z-index:100; }
-        .login-box { background:#313338; padding:30px; border-radius:8px; text-align:center; }
-        .login-input { width:100%; padding:10px; background:#1e1f22; border:1px solid #111; border-radius:4px; color:#fff; margin-bottom:15px; }
-        .login-btn { width:100%; padding:10px; background:#5865f2; border:none; border-radius:4px; color:#fff; font-weight:bold; cursor:pointer; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: sans-serif; }
+        body { display: flex; height: 100vh; background-color: #313338; color: #dbdee1; overflow: hidden; }
+        .sidebar { width: 240px; background-color: #2b2d31; display: flex; flex-direction: column; padding: 10px; gap: 5px; }
+        .chat-area { flex: 1; display: flex; flex-direction: column; background-color: #313338; }
+        .messages-container { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .input-container { padding: 20px; }
+        .chat-input { width: 100%; padding: 15px; background-color: #383a40; border: none; border-radius: 8px; color: #fff; outline: none; }
+        .members-bar { width: 200px; background-color: #2b2d31; padding: 10px; }
+        .login-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #1e1f22; display: flex; align-items: center; justify-content: center; z-index: 100; }
+        .login-box { background-color: #313338; padding: 30px; border-radius: 8px; text-align: center; width: 400px; }
+        .login-input { width: 100%; padding: 10px; background-color: #1e1f22; border: 1px solid #111; border-radius: 4px; color: #fff; margin-bottom: 10px; }
+        .login-btn { width: 100%; padding: 10px; background-color: #5865f2; border: none; border-radius: 4px; color: #fff; font-weight: bold; cursor: pointer; margin-top: 10px; }
     </style>
 </head>
 <body>
+
     <div class="login-overlay" id="loginOverlay">
         <div class="login-box">
-            <h2 style="color:#fff; margin-bottom:15px;">С возвращением!</h2>
-            <input type="text" class="login-input" id="nicknameInput" placeholder="Введите ваш никнейм">
-            <button class="login-btn" onclick="login()">Войти в чат</button>
+            <h2 style="color:#fff; margin-bottom:15px;">Создать или Войти</h2>
+            <input type="text" class="login-input" id="nicknameInput" placeholder="Твой никнейм">
+            
+            <div style="border-top: 1px solid #404249; margin: 15px 0; padding-top: 15px;">
+                <p style="color:#b5bac1; font-size:13px; margin-bottom:8px;">Если ты Админ (создаешь сервер):</p>
+                <button class="login-btn" onclick="startAsHost()">1. Создать сервер</button>
+            </div>
+
+            <div style="border-top: 1px solid #404249; margin: 15px 0; padding-top: 15px;">
+                <p style="color:#b5bac1; font-size:13px; margin-bottom:8px;">Если подключаешься к другу:</p>
+                <input type="text" class="login-input" id="hostIdInput" placeholder="Введи секретный ID друга">
+                <button class="login-btn" style="background-color: #23a55a;" onclick="connectToHost()">2. Подключиться к другу</button>
+            </div>
         </div>
     </div>
+
     <div class="sidebar">
         <h3 style="color:#fff; margin-bottom:10px;">🎮 RazerCord</h3>
-        <div style="background:#404249; padding:8px; border-radius:4px; color:#fff;"># общий</div>
+        <div style="background:#404249; padding:8px; border-radius:4px; color:#fff;" id="roomCodeBlock">ID: Создание...</div>
     </div>
+
     <div class="chat-area">
         <div style="padding:15px; border-bottom:1px solid #1f2023; font-weight:bold; color:#fff;"># общий</div>
         <div class="messages-container" id="messagesContainer"></div>
@@ -37,6 +53,7 @@
             <input type="text" class="chat-input" id="chatInput" placeholder="Написать в #общий..." onkeypress="handleKeyPress(event)">
         </div>
     </div>
+
     <div class="members-bar">
         <h4 style="font-size:12px; color:#949ba4; margin-bottom:10px;">В СЕТИ</h4>
         <div id="usersList"></div>
@@ -44,40 +61,92 @@
 
     <script>
         let currentUser = "";
-        let allMessages = [{ author: "Система", text: "Добро пожаловать! Открой вторую такую же вкладку рядом для теста." }];
+        let peer = null;
+        let connections = []; // Для админа: храним всех зашедших друзей
+        let connToHost = null; // Для друга: связь с админом
+        let allMessages = [{ author: "Система", text: "Добро пожаловать в RazerCord P2P!" }];
         let activeUsers = new Set(["Система"]);
 
-        // Создаем канал связи между вкладками одного браузера
-        const bc = new BroadcastChannel('razercord_bridge');
-
-        bc.onmessage = (event) => {
-            const data = event.data;
-            if (data.type === 'msg') {
-                allMessages.push(data.msg);
-                renderMessages();
-            } else if (data.type === 'ping') {
-                if(data.user) activeUsers.add(data.user);
-                renderUsers();
-                bc.postMessage({ type: 'pong', user: currentUser });
-            } else if (data.type === 'pong') {
-                if(data.user) activeUsers.add(data.user);
-                renderUsers();
-            }
-        };
-
-        function login() {
-            const nick = document.getElementById('nicknameInput').value.trim();
-            if (!nick) return alert("Введите ник!");
-            currentUser = nick;
-            activeUsers.add(currentUser);
+        function initUI() {
             document.getElementById('loginOverlay').style.display = 'none';
-            
+            activeUsers.add(currentUser);
             renderUsers();
             renderMessages();
+        }
 
-            // Маякуем другим вкладкам, что мы онлайн
-            bc.postMessage({ type: 'ping', user: currentUser });
-            setInterval(() => { bc.postMessage({ type: 'ping', user: currentUser }); }, 2000);
+        // 1. ЛОГИКА ДЛЯ АДМИНА (Создание комнаты)
+        function startAsHost() {
+            currentUser = document.getElementById('nicknameInput').value.trim();
+            if (!currentUser) return alert("Введи ник!");
+
+            // Генерируем случайный красивый ID комнаты
+            const roomId = 'razer-' + Math.floor(1000 + Math.random() * 9000);
+            peer = new Peer(roomId);
+
+            peer.on('open', (id) => {
+                document.getElementById('roomCodeBlock').innerText = "ID сервера: " + id;
+                initUI();
+            });
+
+            // Ждем подключений от друзей
+            peer.on('connection', (conn) => {
+                connections.push(conn);
+                
+                conn.on('data', (data) => {
+                    if (data.type === 'login') {
+                        activeUsers.add(data.user);
+                        renderUsers();
+                        // Рассылаем обновленный список пользователей всем
+                        broadcast({ type: 'sys_users', users: Array.from(activeUsers) });
+                        // Отправляем новому другу историю сообщений
+                        conn.send({ type: 'history', messages: allMessages });
+                    } else if (data.type === 'msg') {
+                        allMessages.push(data.msg);
+                        renderMessages();
+                        broadcast({ type: 'msg', msg: data.msg });
+                    }
+                });
+            });
+        }
+
+        // 2. ЛОГИКА ДЛЯ ДРУГА (Подключение)
+        function connectToHost() {
+            currentUser = document.getElementById('nicknameInput').value.trim();
+            const hostId = document.getElementById('hostIdInput').value.trim();
+            if (!currentUser || !hostId) return alert("Заполни ник и ID друга!");
+
+            peer = new Peer();
+
+            peer.on('open', () => {
+                connToHost = peer.connect(hostId);
+                document.getElementById('roomCodeBlock').innerText = "Подключен к: " + hostId;
+                initUI();
+
+                connToHost.on('open', () => {
+                    // Отправляем админу свой никнейм
+                    connToHost.send({ type: 'login', user: currentUser });
+                });
+
+                connToHost.on('data', (data) => {
+                    if (data.type === 'msg') {
+                        allMessages.push(data.msg);
+                        renderMessages();
+                    } else if (data.type === 'sys_users') {
+                        activeUsers = new Set(data.users);
+                        renderUsers();
+                    } else if (data.type === 'history') {
+                        allMessages = data.messages;
+                        renderMessages();
+                    }
+                });
+            });
+        }
+
+        // Функция админа для рассылки данных всем подключенным друзьям
+        function broadcast(data) {
+            connections.forEach(conn => {
+                if (conn.open) conn.send(data);
+            });
         }
 
         function renderUsers() {
@@ -104,12 +173,18 @@
                 const input = document.getElementById('chatInput');
                 const text = input.value.trim();
                 if (!text) return;
-                
+
                 const msgObj = { author: currentUser, text: text };
                 allMessages.push(msgObj);
                 renderMessages();
-                
-                bc.postMessage({ type: 'msg', msg: msgObj });
+
+                if (connToHost) {
+                    // Если мы друг — отправляем админу
+                    connToHost.send({ type: 'msg', msg: msgObj });
+                } else {
+                    // Если мы админ — рассылаем всем друзьям
+                    broadcast({ type: 'msg', msg: msgObj });
+                }
                 input.value = "";
             }
         }
